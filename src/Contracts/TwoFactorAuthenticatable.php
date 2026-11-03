@@ -67,10 +67,5 @@ interface TwoFactorAuthenticatable extends Authenticatable
      * Relationship to trusted devices.
      */
     public function trustedDevices(): HasMany;
-
-    /**
-     * Save the model changes.
-     */
-    public function save(array $options = []);
 }
 
