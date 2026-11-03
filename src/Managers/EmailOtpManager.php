@@ -61,10 +61,11 @@ class EmailOtpManager
             $otpHash = hash('sha256', $otpCode);
 
             EmailOtp::create([
-                'user_id'      => $user->getAuthIdentifier(),
-                'challenge_id' => $challenge->id,
-                'code_hash'    => $otpHash,
-                'expires_at'   => Carbon::now()->addMinutes($ttlMinutes),
+                'user_id'         => $user->getAuthIdentifier(),
+                'challenge_id'    => $challenge->id,
+                'otp_hash'        => $otpHash,
+                'failed_attempts' => 0,
+                'expires_at'      => Carbon::now()->addMinutes($ttlMinutes),
             ]);
 
             // Record cooldown
@@ -93,7 +94,7 @@ class EmailOtpManager
         }
 
         $otpRecord = EmailOtp::where('challenge_id', $challenge->id)
-            ->whereNull('used_at')
+            ->whereNull('consumed_at')
             ->where('expires_at', '>', Carbon::now())
             ->orderByDesc('id')
             ->first();
@@ -103,14 +104,14 @@ class EmailOtpManager
         }
 
         $computedHash = hash('sha256', $code);
-        if (!hash_equals($otpRecord->code_hash, $computedHash)) {
-            $otpRecord->increment('attempts');
+        if (!hash_equals($otpRecord->otp_hash, $computedHash)) {
+            $otpRecord->increment('failed_attempts');
             return false;
         }
 
         // Consume atomically
         $otpRecord->update([
-            'used_at' => Carbon::now(),
+            'consumed_at' => Carbon::now(),
         ]);
 
         return true;

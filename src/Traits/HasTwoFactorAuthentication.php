@@ -30,6 +30,10 @@ trait HasTwoFactorAuthentication
 
     public function getTwoFactorRecoveryCodes(): ?array
     {
+        if ($this->two_factor_recovery_codes === null) {
+            return null;
+        }
+
         return is_array($this->two_factor_recovery_codes)
             ? $this->two_factor_recovery_codes
             : (json_decode((string) $this->two_factor_recovery_codes, true) ?? []);

@@ -19,7 +19,7 @@ class TwoFactorEnableController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         try {
-            $user = $request->user();
+            $user = $request->user() ?: auth('user-api')->user();
             $result = $this->twoFactorService->enable($user, true);
 
             return response()->json($result, Response::HTTP_OK);

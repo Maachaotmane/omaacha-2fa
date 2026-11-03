@@ -3,15 +3,11 @@
 namespace Omaacha\TwoFactor\Contracts;
 
 use Carbon\Carbon;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-interface TwoFactorAuthenticatable
+interface TwoFactorAuthenticatable extends Authenticatable
 {
-    /**
-     * Get the identifier for the authenticatable entity (usually ID).
-     */
-    public function getAuthIdentifier();
-
     /**
      * Get the email or destination address for Two-Factor notifications.
      */

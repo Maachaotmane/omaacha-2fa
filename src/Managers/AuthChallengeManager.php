@@ -30,18 +30,28 @@ class AuthChallengeManager
         $hash = hash('sha256', $rawToken);
         $expiresAt = Carbon::now()->addMinutes($this->getChallengeTtlMinutes());
 
+        $purpose = 'login_2fa';
+        if ($isSetupInvitation) {
+            $purpose = 'invitation';
+        } elseif ($requiresEmailVerification) {
+            $purpose = 'email_otp';
+        }
+
         $challenge = AuthChallenge::create([
-            'challenge_token'             => $hash,
-            'user_id'                     => $user->getAuthIdentifier(),
-            'requires_email_verification' => $requiresEmailVerification,
-            'is_setup_invitation'         => $isSetupInvitation,
-            'invitation_secret'           => $invitationSecret,
-            'invitation_qr_code'          => $invitationQrCode,
-            'payload'                     => $payload,
-            'expires_at'                  => $expiresAt,
-            'ip_address'                  => request()->ip(),
-            'user_agent'                  => substr((string) request()->userAgent(), 0, 500),
+            'challenge_hash'  => $hash,
+            'user_id'         => $user->getAuthIdentifier(),
+            'purpose'         => $purpose,
+            'failed_attempts' => 0,
+            'is_consumed'     => false,
+            'expires_at'      => $expiresAt,
         ]);
+
+        if ($invitationSecret) {
+            \Illuminate\Support\Facades\Cache::put("2fa_inv_secret_{$challenge->id}", $invitationSecret, $expiresAt);
+        }
+        if ($invitationQrCode) {
+            \Illuminate\Support\Facades\Cache::put("2fa_inv_qr_{$challenge->id}", $invitationQrCode, $expiresAt);
+        }
 
         return [
             'challenge_token' => $rawToken,
@@ -60,9 +70,19 @@ class AuthChallengeManager
 
         $hash = hash('sha256', $rawToken);
 
-        return AuthChallenge::where('challenge_token', $hash)
+        return AuthChallenge::with('user')
+            ->where('challenge_hash', $hash)
+            ->where('is_consumed', false)
             ->where('expires_at', '>', Carbon::now())
             ->first();
+    }
+
+    /**
+     * Record a failed attempt and invalidate if max attempts exceeded.
+     */
+    public function recordFailure(AuthChallenge $challenge): void
+    {
+        $challenge->increment('failed_attempts');
     }
 
     /**
@@ -70,7 +90,9 @@ class AuthChallengeManager
      */
     public function consume(AuthChallenge $challenge): void
     {
-        $challenge->delete();
+        $challenge->update([
+            'is_consumed' => true,
+        ]);
     }
 }
 

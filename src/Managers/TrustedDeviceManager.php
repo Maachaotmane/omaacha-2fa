@@ -10,6 +10,8 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 class TrustedDeviceManager
 {
+    public const COOKIE_NAME = 'isense_device_token';
+
     public function getCookieName(): string
     {
         return config('two-factor.trusted_devices.cookie_name', 'omaacha_device_trust');
@@ -68,13 +70,13 @@ class TrustedDeviceManager
         $parsedDeviceName = $deviceName ?: $this->resolveDeviceName($request->userAgent());
 
         TrustedDevice::create([
-            'user_id'           => $user->getAuthIdentifier(),
-            'device_token_hash' => $tokenHash,
-            'device_name'       => $parsedDeviceName,
-            'user_agent'        => substr((string) $request->userAgent(), 0, 500),
-            'ip_address'        => $request->ip(),
-            'last_used_at'      => Carbon::now(),
-            'expires_at'        => $expiresAt,
+            'user_id'      => $user->getAuthIdentifier(),
+            'token_hash'   => $tokenHash,
+            'device_name'  => $parsedDeviceName,
+            'user_agent'   => substr((string) $request->userAgent(), 0, 500),
+            'ip_address'   => $request->ip(),
+            'last_used_at' => Carbon::now(),
+            'expires_at'   => $expiresAt,
         ]);
 
         return [
@@ -95,7 +97,7 @@ class TrustedDeviceManager
         $tokenHash = $this->hashToken($rawToken, $request);
 
         $device = TrustedDevice::where('user_id', $user->getAuthIdentifier())
-            ->where('device_token_hash', $tokenHash)
+            ->where('token_hash', $tokenHash)
             ->where('expires_at', '>', Carbon::now())
             ->first();
 
@@ -110,7 +112,7 @@ class TrustedDeviceManager
         $tokenHash = $this->hashToken($rawToken, $request);
 
         TrustedDevice::where('user_id', $user->getAuthIdentifier())
-            ->where('device_token_hash', $tokenHash)
+            ->where('token_hash', $tokenHash)
             ->where('expires_at', '>', Carbon::now())
             ->update([
                 'last_used_at' => Carbon::now(),

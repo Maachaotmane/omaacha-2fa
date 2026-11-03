@@ -57,7 +57,7 @@ class TotpManager
      */
     public function getQrCodeSvg(string $provisioningUri, int $size = 200): string
     {
-        return QrCodeSvg::generateSvgDataUri($provisioningUri, $size);
+        return QrCodeSvg::generate($provisioningUri, $size);
     }
 
     /**
@@ -65,8 +65,18 @@ class TotpManager
      * Checks current window +- 1 step (90 seconds total) for clock drift.
      * Prevents code reuse within the same window via cache.
      */
-    public function verify(string $secret, string $code, ?string $userIdentifier = null, int $window = 1): bool
+    public function verify($secret, string $code = '', $userIdentifier = null, int $window = 1): bool
     {
+        // Support verify($user, $secret, $code, $window) polymorphic signature
+        if ($secret instanceof TwoFactorAuthenticatable || is_object($secret)) {
+            $userObj = $secret;
+            $actualSecret = (string) $code;
+            $actualCode = (string) $userIdentifier;
+            $actualUserIdentifier = (string) (method_exists($userObj, 'getAuthIdentifier') ? $userObj->getAuthIdentifier() : ($userObj->id ?? ''));
+
+            return $this->verify($actualSecret, $actualCode, $actualUserIdentifier, $window);
+        }
+
         $cleanCode = trim($code);
         if (strlen($cleanCode) !== self::DIGITS || !ctype_digit($cleanCode)) {
             return false;
@@ -109,6 +119,14 @@ class TotpManager
         $value = ($unpacked[1] & 0x7FFFFFFF) % (10 ** self::DIGITS);
 
         return str_pad((string) $value, self::DIGITS, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Alias for calculateTotp for backwards compatibility.
+     */
+    public function calculateCode(string $secret, int $slice): string
+    {
+        return $this->calculateTotp($secret, $slice);
     }
 
     /**

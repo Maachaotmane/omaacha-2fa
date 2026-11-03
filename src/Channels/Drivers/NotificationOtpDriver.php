@@ -3,6 +3,7 @@
 namespace Omaacha\TwoFactor\Channels\Drivers;
 
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Notifications\Notification;
 use Omaacha\TwoFactor\Channels\Contracts\OtpChannelDriver;
 use Omaacha\TwoFactor\Contracts\TwoFactorAuthenticatable;
 

@@ -5,30 +5,25 @@ namespace Omaacha\TwoFactor\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 
 class AuthChallenge extends Model
 {
     protected $table = 'auth_challenges';
 
     protected $fillable = [
-        'challenge_token',
         'user_id',
-        'type',
-        'requires_email_verification',
-        'is_setup_invitation',
-        'invitation_secret',
-        'invitation_qr_code',
-        'payload',
+        'challenge_hash',
+        'purpose',
+        'failed_attempts',
+        'is_consumed',
         'expires_at',
-        'ip_address',
-        'user_agent',
     ];
 
     protected $casts = [
-        'requires_email_verification' => 'boolean',
-        'is_setup_invitation'         => 'boolean',
-        'payload'                     => 'array',
-        'expires_at'                  => 'datetime',
+        'failed_attempts' => 'integer',
+        'is_consumed'     => 'boolean',
+        'expires_at'      => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -40,6 +35,26 @@ class AuthChallenge extends Model
     public function isExpired(): bool
     {
         return $this->expires_at === null || $this->expires_at->isPast();
+    }
+
+    public function getRequiresEmailVerificationAttribute(): bool
+    {
+        return $this->purpose === 'email_otp';
+    }
+
+    public function getIsSetupInvitationAttribute(): bool
+    {
+        return $this->purpose === 'invitation';
+    }
+
+    public function getInvitationSecretAttribute(): ?string
+    {
+        return Cache::get("2fa_inv_secret_{$this->id}");
+    }
+
+    public function getInvitationQrCodeAttribute(): ?string
+    {
+        return Cache::get("2fa_inv_qr_{$this->id}");
     }
 }
 

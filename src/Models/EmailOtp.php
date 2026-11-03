@@ -13,16 +13,16 @@ class EmailOtp extends Model
     protected $fillable = [
         'user_id',
         'challenge_id',
-        'code_hash',
+        'otp_hash',
         'expires_at',
-        'used_at',
-        'attempts',
+        'consumed_at',
+        'failed_attempts',
     ];
 
     protected $casts = [
-        'expires_at' => 'datetime',
-        'used_at'    => 'datetime',
-        'attempts'   => 'integer',
+        'expires_at'      => 'datetime',
+        'consumed_at'     => 'datetime',
+        'failed_attempts' => 'integer',
     ];
 
     public function user(): BelongsTo
@@ -38,7 +38,7 @@ class EmailOtp extends Model
 
     public function isValid(): bool
     {
-        return $this->used_at === null
+        return $this->consumed_at === null
             && $this->expires_at !== null
             && $this->expires_at->isFuture();
     }

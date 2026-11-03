@@ -67,6 +67,11 @@ class QrCodeSvg
         return $qr->toSvgString($margin, $size);
     }
 
+    public static function generateSvgDataUri(string $text, int $size = 220, int $margin = 4): string
+    {
+        return self::generate($text, $size, $margin);
+    }
+
     public static function encodeText(string $text, int $ecc = self::ECC_MEDIUM): self
     {
         $bytes = array_values(unpack('C*', $text));

@@ -35,11 +35,13 @@ class TwoFactorService
     {
         $enabled = $user->hasTwoFactorEnabled();
         $trustedDevices = $this->trustedDeviceManager->getActiveDevices($user);
+        $codesLeft = $enabled ? count(array_filter($user->getTwoFactorRecoveryCodes() ?? [], fn($c) => empty($c['used']))) : 0;
 
         return [
             'enabled'                => $enabled,
             'confirmed_at'           => $user->getTwoFactorConfirmedAt()?->toIso8601String(),
-            'recovery_codes_left'    => $enabled ? count(array_filter($user->getTwoFactorRecoveryCodes() ?? [], fn($c) => empty($c['used']))) : 0,
+            'recovery_codes_left'    => $codesLeft,
+            'has_recovery_codes'     => $codesLeft > 0,
             'trusted_devices_count'  => $trustedDevices->count(),
             'trusted_devices'        => $trustedDevices,
         ];
@@ -64,6 +66,7 @@ class TwoFactorService
 
         return [
             'secret'           => $secret,
+            'secret_key'       => $secret,
             'qr_code_svg'      => $qrCodeSvg,
             'provisioning_uri' => $provisioningUri,
         ];
@@ -227,26 +230,23 @@ class TwoFactorService
 
         if ($challenge->requires_email_verification && !$user->hasTwoFactorEnabled()) {
             $secret = $this->totpManager->generateSecretKey();
+            $user->setTwoFactorSecret($secret);
+            $user->save();
+
             $provisioningUri = $this->totpManager->getProvisioningUri($user, $secret);
             $qrCodeSvg = $this->totpManager->getQrCodeSvg($provisioningUri);
 
-            $newChallenge = $this->challengeManager->createChallenge(
-                $user,
-                false,
-                true,
-                $secret,
-                $qrCodeSvg
-            );
-
-            $this->challengeManager->consume($challenge);
-
             return [
-                'type'            => 'two_factor_invitation',
-                'challenge_token' => $newChallenge['challenge_token'],
-                'secret_key'      => $secret,
-                'qr_code_svg'     => $qrCodeSvg,
-                'email'           => $user->getEmailForTwoFactor(),
-                'expires_at'      => $newChallenge['challenge']->expires_at->toIso8601String(),
+                'type'             => 'two_factor_invitation',
+                'email_verified'   => true,
+                'invite_2fa'       => true,
+                'challenge_token'  => $challengeToken,
+                'secret_key'       => $secret,
+                'secret'           => $secret,
+                'qr_code_svg'      => $qrCodeSvg,
+                'provisioning_uri' => $provisioningUri,
+                'email'            => $user->getEmailForTwoFactor(),
+                'expires_at'       => $challenge->expires_at->toIso8601String(),
             ];
         }
 
@@ -269,11 +269,14 @@ class TwoFactorService
     public function skipInvitation(string $challengeToken, Request $request): array
     {
         $challenge = $this->challengeManager->resolve($challengeToken);
-        if (!$challenge || !$challenge->is_setup_invitation) {
+        if (!$challenge) {
             throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Invitation session has expired. Please sign in again.');
         }
 
         $user = $challenge->user;
+        if (!$user->hasTwoFactorEnabled()) {
+            $user->setTwoFactorSecret(null);
+        }
         $user->setEmailOtpVerifiedAt(Carbon::now());
         $user->save();
 
@@ -290,14 +293,14 @@ class TwoFactorService
         Request $request
     ): array {
         $challenge = $this->challengeManager->resolve($challengeToken);
-        if (!$challenge || !$challenge->is_setup_invitation || empty($challenge->invitation_secret)) {
+        if (!$challenge) {
             throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Invitation session has expired. Please sign in again.');
         }
 
         $user = $challenge->user;
-        $secret = $challenge->invitation_secret;
+        $secret = $user->getTwoFactorSecret();
 
-        if (!$this->totpManager->verify($secret, $code, (string) $user->getAuthIdentifier())) {
+        if (!$secret || !$this->totpManager->verify($secret, $code, (string) $user->getAuthIdentifier())) {
             throw new RuntimeException(__('two-factor::messages.invalid_totp_code') ?? 'Invalid authenticator code. Please check your authenticator app and try again.');
         }
 
