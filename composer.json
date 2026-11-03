@@ -1,0 +1,48 @@
+{
+    "name": "omaacha/2fa",
+    "description": "Multi-Factor Authentication (TOTP, Multi-Channel OTP, Recovery Codes, Trusted Devices, Sudo Mode) for Laravel APIs",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Otmane Maacha",
+            "email": "maacha.oussama@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1|^8.2|^8.3",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/database": "^10.0|^11.0",
+        "illuminate/http": "^10.0|^11.0",
+        "illuminate/mail": "^10.0|^11.0",
+        "illuminate/notifications": "^10.0|^11.0",
+        "illuminate/cache": "^10.0|^11.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0",
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Omaacha\\TwoFactor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Omaacha\\TwoFactor\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Omaacha\\TwoFactor\\TwoFactorServiceProvider"
+            ],
+            "aliases": {
+                "TwoFactor": "Omaacha\\TwoFactor\\Facades\\TwoFactor"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
+
