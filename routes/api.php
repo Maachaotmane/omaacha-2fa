@@ -45,8 +45,8 @@ Route::group(['prefix' => $prefix, 'middleware' => $middleware, 'as' => 'two-fac
         Route::delete('/devices', TwoFactorDeviceRevokeAllController::class)->name('devices.revoke-all');
         Route::post('/devices/revoke-all', TwoFactorDeviceRevokeAllController::class)->name('devices.revoke-all-post');
 
-        Route::post('/ownership/request', TwoFactorOwnershipRequestController::class)->middleware('throttle:30,1')->name('ownership.request');
-        Route::post('/ownership/verify', TwoFactorOwnershipVerifyController::class)->middleware('throttle:10,1')->name('ownership.verify');
+        Route::post('/ownership/request', TwoFactorOwnershipRequestController::class)->name('ownership.request');
+        Route::post('/ownership/verify', TwoFactorOwnershipVerifyController::class)->name('ownership.verify');
 
         // Sudo Mode Confirmation
         Route::post('/sudo/confirm', TwoFactorSudoConfirmController::class)->middleware('throttle:10,1')->name('sudo.confirm');
