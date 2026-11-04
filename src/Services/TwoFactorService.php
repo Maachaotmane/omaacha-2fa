@@ -106,7 +106,7 @@ class TwoFactorService
         if ($trustDevice) {
             $deviceResult = $this->trustedDeviceManager->issueDeviceToken($user, $deviceName, $request);
             $deviceCookie = $deviceResult['cookie'] ?? null;
-            $deviceToken = $deviceResult['device_token'] ?? null;
+            $deviceToken = $deviceResult['device_token'] ?? $deviceResult['raw_token'] ?? null;
         }
 
         $result = [
@@ -209,12 +209,17 @@ class TwoFactorService
         $this->challengeManager->consume($challenge);
 
         $deviceCookie = null;
+        $deviceToken = null;
         if ($trustDevice) {
             $deviceResult = $this->trustedDeviceManager->issueDeviceToken($user, $deviceName, $request);
             $deviceCookie = $deviceResult['cookie'];
+            $deviceToken = $deviceResult['device_token'] ?? $deviceResult['raw_token'] ?? null;
         }
 
         $authResult = $this->issueTokenForUser($user, $request);
+        if ($deviceToken) {
+            $authResult['payload']['device_token'] = $deviceToken;
+        }
         if ($deviceCookie) {
             $authResult['cookie'] = $deviceCookie;
         }
@@ -277,12 +282,17 @@ class TwoFactorService
         $this->challengeManager->consume($challenge);
 
         $deviceCookie = null;
+        $deviceToken = null;
         if ($trustDevice) {
             $deviceResult = $this->trustedDeviceManager->issueDeviceToken($user, $deviceName, $request);
             $deviceCookie = $deviceResult['cookie'];
+            $deviceToken = $deviceResult['device_token'] ?? $deviceResult['raw_token'] ?? null;
         }
 
         $authResult = $this->issueTokenForUser($user, $request);
+        if ($deviceToken) {
+            $authResult['payload']['device_token'] = $deviceToken;
+        }
         if ($deviceCookie) {
             $authResult['cookie'] = $deviceCookie;
         }
@@ -342,14 +352,20 @@ class TwoFactorService
         $this->challengeManager->consume($challenge);
 
         $deviceCookie = null;
+        $deviceToken = null;
         if ($trustDevice) {
             $deviceResult = $this->trustedDeviceManager->issueDeviceToken($user, $deviceName, $request);
             $deviceCookie = $deviceResult['cookie'];
+            $deviceToken = $deviceResult['device_token'] ?? $deviceResult['raw_token'] ?? null;
         }
 
         $authResult = $this->issueTokenForUser($user, $request);
         $authResult['payload']['recovery_codes'] = $plaintextCodes;
         $authResult['payload']['two_factor_enabled'] = true;
+
+        if ($deviceToken) {
+            $authResult['payload']['device_token'] = $deviceToken;
+        }
 
         if ($deviceCookie) {
             $authResult['cookie'] = $deviceCookie;
@@ -423,12 +439,17 @@ class TwoFactorService
         $this->challengeManager->consume($challenge);
 
         $deviceCookie = null;
+        $deviceToken = null;
         if ($trustDevice) {
             $deviceResult = $this->trustedDeviceManager->issueDeviceToken($user, $deviceName, $request);
             $deviceCookie = $deviceResult['cookie'];
+            $deviceToken = $deviceResult['device_token'] ?? $deviceResult['raw_token'] ?? null;
         }
 
         $authResult = $this->issueTokenForUser($user, $request);
+        if ($deviceToken) {
+            $authResult['payload']['device_token'] = $deviceToken;
+        }
         if ($deviceCookie) {
             $authResult['cookie'] = $deviceCookie;
         }

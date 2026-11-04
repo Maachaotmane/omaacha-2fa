@@ -80,8 +80,9 @@ class TrustedDeviceManager
         ]);
 
         return [
-            'raw_token' => $rawToken,
-            'cookie'    => $this->makeCookie($rawToken, $expiresAt),
+            'raw_token'    => $rawToken,
+            'device_token' => $rawToken,
+            'cookie'       => $this->makeCookie($rawToken, $expiresAt),
         ];
     }
 
@@ -94,10 +95,14 @@ class TrustedDeviceManager
             return false;
         }
 
-        $tokenHash = $this->hashToken($rawToken, $request);
+        $candidates = [
+            $this->hashToken($rawToken, $request),
+            hash('sha256', $rawToken . '|' . hash('sha256', '|' . $this->resolvePlatformAndBrowser($request?->userAgent()))),
+            hash('sha256', $rawToken),
+        ];
 
         $device = TrustedDevice::where('user_id', $user->getAuthIdentifier())
-            ->where('token_hash', $tokenHash)
+            ->whereIn('token_hash', array_unique($candidates))
             ->where('expires_at', '>', Carbon::now())
             ->first();
 
@@ -109,10 +114,14 @@ class TrustedDeviceManager
      */
     public function touch(TwoFactorAuthenticatable $user, string $rawToken, ?Request $request = null): void
     {
-        $tokenHash = $this->hashToken($rawToken, $request);
+        $candidates = [
+            $this->hashToken($rawToken, $request),
+            hash('sha256', $rawToken . '|' . hash('sha256', '|' . $this->resolvePlatformAndBrowser($request?->userAgent()))),
+            hash('sha256', $rawToken),
+        ];
 
         TrustedDevice::where('user_id', $user->getAuthIdentifier())
-            ->where('token_hash', $tokenHash)
+            ->whereIn('token_hash', array_unique($candidates))
             ->where('expires_at', '>', Carbon::now())
             ->update([
                 'last_used_at' => Carbon::now(),
@@ -186,7 +195,7 @@ class TrustedDeviceManager
             $isSecure,
             true, // httpOnly
             false,
-            Cookie::SAMESITE_LAX
+            $isSecure ? Cookie::SAMESITE_NONE : Cookie::SAMESITE_LAX
         );
     }
 
