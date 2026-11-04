@@ -15,7 +15,17 @@ trait HasTwoFactorAuthentication
 
     public function hasTwoFactorEnabled(): bool
     {
-        return $this->two_factor_confirmed_at !== null && !empty($this->two_factor_secret);
+        if ($this->two_factor_confirmed_at === null) {
+            return false;
+        }
+
+        // When two_factor_secret is present in attributes, verify it's not empty.
+        // If omitted by a partial SELECT query, two_factor_confirmed_at confirms 2FA was set up.
+        if (array_key_exists('two_factor_secret', $this->attributes ?? [])) {
+            return !empty($this->two_factor_secret);
+        }
+
+        return true;
     }
 
     public function getTwoFactorSecret(): ?string
