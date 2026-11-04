@@ -20,7 +20,8 @@ class TwoFactorEnableController extends Controller
     {
         try {
             $user = $request->user() ?: auth('user-api')->user();
-            $result = $this->twoFactorService->enable($user, true);
+            $enforceOwnership = (bool) config('two-factor.enforce_ownership', false);
+            $result = $this->twoFactorService->enable($user, $enforceOwnership);
 
             return response()->json($result, Response::HTTP_OK);
         } catch (RuntimeException $e) {
