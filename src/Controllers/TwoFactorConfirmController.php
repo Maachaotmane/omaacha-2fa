@@ -19,14 +19,30 @@ class TwoFactorConfirmController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $request->validate([
-            'code' => 'required|string|size:6',
+            'code'         => 'required|string|size:6',
+            'trust_device' => 'nullable|boolean',
+            'device_name'  => 'nullable|string|max:255',
         ]);
 
         try {
             $user = $request->user();
-            $result = $this->twoFactorService->confirm($user, $request->input('code'));
+            $result = $this->twoFactorService->confirm(
+                $user,
+                $request->input('code'),
+                $request->boolean('trust_device'),
+                $request->input('device_name'),
+                $request
+            );
 
-            return response()->json($result, Response::HTTP_OK);
+            $cookie = $result['cookie'] ?? null;
+            unset($result['cookie']);
+
+            $response = response()->json($result, Response::HTTP_OK);
+            if ($cookie) {
+                $response->withCookie($cookie);
+            }
+
+            return $response;
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (Throwable $e) {

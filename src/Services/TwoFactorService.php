@@ -72,8 +72,13 @@ class TwoFactorService
         ];
     }
 
-    public function confirm(TwoFactorAuthenticatable $user, string $code): array
-    {
+    public function confirm(
+        TwoFactorAuthenticatable $user,
+        string $code,
+        bool $trustDevice = false,
+        ?string $deviceName = null,
+        ?Request $request = null
+    ): array {
         $secret = $user->getTwoFactorSecret();
         if (empty($secret)) {
             throw new RuntimeException(__('two-factor::messages.enable_2fa_first') ?? 'Two-factor setup has not been initiated.');
@@ -94,11 +99,28 @@ class TwoFactorService
 
         Cache::forget("2fa_ownership_verified_{$user->getAuthIdentifier()}");
 
-        return [
+        $deviceCookie = null;
+        $deviceToken = null;
+        if ($trustDevice) {
+            $deviceResult = $this->trustedDeviceManager->issueDeviceToken($user, $deviceName, $request);
+            $deviceCookie = $deviceResult['cookie'] ?? null;
+            $deviceToken = $deviceResult['device_token'] ?? null;
+        }
+
+        $result = [
             'confirmed'      => true,
             'recovery_codes' => $plaintextCodes,
             'message'        => __('two-factor::messages.two_factor_confirmed_successfully') ?? 'Two-factor authentication has been confirmed successfully.',
         ];
+
+        if ($deviceToken) {
+            $result['device_token'] = $deviceToken;
+        }
+        if ($deviceCookie) {
+            $result['cookie'] = $deviceCookie;
+        }
+
+        return $result;
     }
 
     public function disable(TwoFactorAuthenticatable $user, string $password, string $code): bool
