@@ -3,6 +3,8 @@
 namespace Omaacha\TwoFactor\Services;
 
 use Carbon\Carbon;
+use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -91,11 +93,11 @@ class TwoFactorService
         $plaintextCodes = $this->recoveryCodeManager->generatePlaintextCodes();
         $hashedCodes = $this->recoveryCodeManager->prepareHashedCodes($plaintextCodes);
 
-        DB::transaction(function () use ($user, $hashedCodes) {
+        $this->transaction(function () use ($user, $hashedCodes) {
             $user->setTwoFactorConfirmedAt(Carbon::now());
             $user->setTwoFactorRecoveryCodes($hashedCodes);
             $user->save();
-        });
+        }, $user);
 
         Cache::forget("2fa_ownership_verified_{$user->getAuthIdentifier()}");
 
@@ -137,28 +139,28 @@ class TwoFactorService
             throw new RuntimeException(__('two-factor::messages.invalid_two_factor_code') ?? 'Invalid 2FA code or recovery code.');
         }
 
-        DB::transaction(function () use ($user) {
+        $this->transaction(function () use ($user) {
             $user->setTwoFactorSecret(null);
             $user->setTwoFactorConfirmedAt(null);
             $user->setTwoFactorRecoveryCodes(null);
             $user->save();
 
             $this->trustedDeviceManager->revokeAllDevices($user);
-        });
+        }, $user);
 
         return true;
     }
 
     public function adminDisable(TwoFactorAuthenticatable $targetUser): bool
     {
-        DB::transaction(function () use ($targetUser) {
+        $this->transaction(function () use ($targetUser) {
             $targetUser->setTwoFactorSecret(null);
             $targetUser->setTwoFactorConfirmedAt(null);
             $targetUser->setTwoFactorRecoveryCodes(null);
             $targetUser->save();
 
             $this->trustedDeviceManager->revokeAllDevices($targetUser);
-        });
+        }, $targetUser);
 
         return true;
     }
@@ -329,13 +331,13 @@ class TwoFactorService
         $plaintextCodes = $this->recoveryCodeManager->generatePlaintextCodes();
         $hashedCodes = $this->recoveryCodeManager->prepareHashedCodes($plaintextCodes);
 
-        DB::transaction(function () use ($user, $secret, $hashedCodes) {
+        $this->transaction(function () use ($user, $secret, $hashedCodes) {
             $user->setTwoFactorSecret($secret);
             $user->setTwoFactorConfirmedAt(Carbon::now());
             $user->setTwoFactorRecoveryCodes($hashedCodes);
             $user->setEmailOtpVerifiedAt(Carbon::now());
             $user->save();
-        });
+        }, $user);
 
         $this->challengeManager->consume($challenge);
 
@@ -462,6 +464,20 @@ class TwoFactorService
                 'two_factor_enabled' => $user->hasTwoFactorEnabled(),
             ],
         ];
+    }
+
+    protected function transaction(Closure $callback, ?TwoFactorAuthenticatable $user = null)
+    {
+        $connection = null;
+        if ($user instanceof Model) {
+            $connection = $user->getConnectionName();
+        }
+        $connection = $connection
+            ?? config('two-factor.database_connection')
+            ?? config('tenancy.database.central_connection')
+            ?? config('database.default');
+
+        return DB::connection($connection)->transaction($callback);
     }
 }
 

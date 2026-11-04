@@ -6,9 +6,12 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Cache;
+use Omaacha\TwoFactor\Traits\HasTwoFactorConnection;
 
 class AuthChallenge extends Model
 {
+    use HasTwoFactorConnection;
+
     protected $table = 'auth_challenges';
 
     protected $fillable = [

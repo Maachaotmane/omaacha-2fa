@@ -5,9 +5,12 @@ namespace Omaacha\TwoFactor\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Omaacha\TwoFactor\Traits\HasTwoFactorConnection;
 
 class EmailOtp extends Model
 {
+    use HasTwoFactorConnection;
+
     protected $table = 'email_otps';
 
     protected $fillable = [

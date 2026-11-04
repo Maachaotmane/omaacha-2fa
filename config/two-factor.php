@@ -3,6 +3,16 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Database Connection
+    |--------------------------------------------------------------------------
+    | The database connection used for two-factor tables: trusted_devices,
+    | auth_challenges, and email_otps. In multi-tenant environments, set this
+    | to your central connection (e.g. 'mysql'). Defaults to tenancy central or null.
+    */
+    'database_connection' => env('TWO_FACTOR_DB_CONNECTION', null),
+
+    /*
+    |--------------------------------------------------------------------------
     | User Model
     |--------------------------------------------------------------------------
     | The model representing your authenticatable users. Must implement
@@ -69,4 +79,3 @@ return [
         'auth_middleware' => ['api'],
     ],
 ];
-
