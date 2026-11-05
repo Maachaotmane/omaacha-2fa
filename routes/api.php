@@ -25,12 +25,12 @@ $authMiddleware = config('two-factor.routes.auth_middleware', ['api']);
 
 Route::group(['prefix' => $prefix, 'middleware' => $middleware, 'as' => 'two-factor.'], function () use ($authMiddleware) {
     // Unauthenticated challenge resolution routes
-    Route::post('/verify', TwoFactorVerifyController::class)->middleware('throttle:10,1')->name('verify');
-    Route::post('/email/request', TwoFactorEmailRequestController::class)->middleware('throttle:5,1')->name('email.request');
-    Route::post('/email/verify', TwoFactorEmailVerifyController::class)->middleware('throttle:10,1')->name('email.verify');
-    Route::post('/recovery/verify', TwoFactorRecoveryVerifyController::class)->middleware('throttle:10,1')->name('recovery.verify');
-    Route::post('/invitation/skip', TwoFactorSkipInvitationController::class)->middleware('throttle:10,1')->name('invitation.skip');
-    Route::post('/invitation/confirm', TwoFactorConfirmInvitationController::class)->middleware('throttle:10,1')->name('invitation.confirm');
+    Route::post('/verify', TwoFactorVerifyController::class)->middleware('throttle:10,1,2fa-totp')->name('verify');
+    Route::post('/email/request', TwoFactorEmailRequestController::class)->middleware('throttle:5,1,2fa-email-req')->name('email.request');
+    Route::post('/email/verify', TwoFactorEmailVerifyController::class)->middleware('throttle:10,1,2fa-email-verify')->name('email.verify');
+    Route::post('/recovery/verify', TwoFactorRecoveryVerifyController::class)->middleware('throttle:10,1,2fa-recovery')->name('recovery.verify');
+    Route::post('/invitation/skip', TwoFactorSkipInvitationController::class)->middleware('throttle:10,1,2fa-invite-skip')->name('invitation.skip');
+    Route::post('/invitation/confirm', TwoFactorConfirmInvitationController::class)->middleware('throttle:10,1,2fa-invite-confirm')->name('invitation.confirm');
 
     // Authenticated management routes
     Route::group(['middleware' => $authMiddleware], function () {
@@ -49,7 +49,7 @@ Route::group(['prefix' => $prefix, 'middleware' => $middleware, 'as' => 'two-fac
         Route::post('/ownership/verify', TwoFactorOwnershipVerifyController::class)->name('ownership.verify');
 
         // Sudo Mode Confirmation
-        Route::post('/sudo/confirm', TwoFactorSudoConfirmController::class)->middleware('throttle:10,1')->name('sudo.confirm');
+        Route::post('/sudo/confirm', TwoFactorSudoConfirmController::class)->middleware('throttle:10,1,2fa-sudo-confirm')->name('sudo.confirm');
     });
 });
 
