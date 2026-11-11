@@ -15,6 +15,7 @@ return [
     'recovery_codes_regenerated'          => 'تمت إعادة إنشاء رموز الاسترداد بنجاح.',
     'invalid_or_expired_challenge'        => 'انتهت صلاحية جلسة المصادقة الثنائية. يرجى تسجيل الدخول مرة أخرى.',
     'ownership_verification_required'     => 'يرجى التحقق من هويتك باستخدام الرمز المرسل إلى بريدك الإلكتروني أولاً.',
+    'email_verification_required'         => 'التحقق عبر البريد الإلكتروني مطلوب قبل المتابعة.',
     'email_verified_successfully'         => 'تم التحقق من ملكية البريد الإلكتروني بنجاح.',
     'generic_request_error'               => 'حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى.',
     'two_factor_required'                 => 'يجب تفعيل المصادقة الثنائية للوصول إلى هذا المورد.',

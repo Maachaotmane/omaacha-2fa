@@ -15,6 +15,7 @@ return [
     'recovery_codes_regenerated'          => 'Códigos de recuperación regenerados correctamente.',
     'invalid_or_expired_challenge'        => 'La sesión de dos factores ha caducado. Inicie sesión nuevamente.',
     'ownership_verification_required'     => 'Primero verifique su identidad con el código enviado por correo electrónico.',
+    'email_verification_required'         => 'Se requiere la verificación por correo electrónico antes de continuar.',
     'email_verified_successfully'         => 'Propiedad del correo electrónico verificada correctamente.',
     'generic_request_error'               => 'Ocurrió un error al procesar su solicitud. Por favor intente nuevamente.',
     'two_factor_required'                 => 'Se debe habilitar la autenticación de dos factores para acceder a este recurso.',

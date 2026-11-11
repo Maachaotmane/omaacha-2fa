@@ -15,6 +15,7 @@ return [
     'recovery_codes_regenerated'          => 'Recovery codes regenerated successfully.',
     'invalid_or_expired_challenge'        => 'Two-factor session has expired. Please sign in again.',
     'ownership_verification_required'     => 'Please verify your identity with the email code first.',
+    'email_verification_required'         => 'Email verification is required before proceeding.',
     'email_verified_successfully'         => 'Email ownership verified successfully.',
     'generic_request_error'               => 'An error occurred while processing your request. Please try again.',
     'two_factor_required'                 => 'Two-factor authentication must be enabled to access this resource.',

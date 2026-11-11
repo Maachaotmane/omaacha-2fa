@@ -258,6 +258,8 @@ class TwoFactorService
         $user->save();
 
         if ($challenge->requires_email_verification && !$user->hasTwoFactorEnabled()) {
+            $this->challengeManager->markVerified($challenge);
+
             $secret = $this->totpManager->generateSecretKey();
             $user->setTwoFactorSecret($secret);
             $user->save();
@@ -307,6 +309,10 @@ class TwoFactorService
             throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Invitation session has expired. Please sign in again.');
         }
 
+        if (!$this->challengeManager->isVerified($challenge)) {
+            throw new RuntimeException(__('two-factor::messages.email_verification_required') ?? 'Email verification is required before proceeding.');
+        }
+
         $user = $challenge->user;
         if (!$user->hasTwoFactorEnabled()) {
             $user->setTwoFactorSecret(null);
@@ -329,6 +335,10 @@ class TwoFactorService
         $challenge = $this->challengeManager->resolve($challengeToken);
         if (!$challenge) {
             throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Invitation session has expired. Please sign in again.');
+        }
+
+        if (!$this->challengeManager->isVerified($challenge)) {
+            throw new RuntimeException(__('two-factor::messages.email_verification_required') ?? 'Email verification is required before proceeding.');
         }
 
         $user = $challenge->user;

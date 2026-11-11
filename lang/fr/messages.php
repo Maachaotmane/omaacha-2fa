@@ -15,6 +15,7 @@ return [
     'recovery_codes_regenerated'          => 'Codes de récupération régénérés avec succès.',
     'invalid_or_expired_challenge'        => 'La session à deux facteurs a expiré. Veuillez vous reconnecter.',
     'ownership_verification_required'     => 'Veuillez d\'abord vérifier votre identité avec le code envoyé par e-mail.',
+    'email_verification_required'         => 'La vérification par e-mail est requise avant de continuer.',
     'email_verified_successfully'         => 'Propriété de l\'e-mail vérifiée avec succès.',
     'generic_request_error'               => 'Une erreur s\'est produite lors du traitement de votre demande. Veuillez réessayer.',
     'two_factor_required'                 => 'L\'authentification à deux facteurs doit être activée pour accéder à cette ressource.',

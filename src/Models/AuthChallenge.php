@@ -50,6 +50,15 @@ class AuthChallenge extends Model
         return $this->purpose === 'invitation';
     }
 
+    public function isVerified(): bool
+    {
+        if ($this->purpose === 'invitation') {
+            return true;
+        }
+
+        return (bool) Cache::get("2fa_challenge_verified_{$this->id}", false);
+    }
+
     public function getInvitationSecretAttribute(): ?string
     {
         return Cache::get("2fa_inv_secret_{$this->id}");

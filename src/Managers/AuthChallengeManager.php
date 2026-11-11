@@ -94,5 +94,27 @@ class AuthChallengeManager
             'is_consumed' => true,
         ]);
     }
+
+    /**
+     * Mark a challenge as verified (e.g. after email OTP verification).
+     */
+    public function markVerified(AuthChallenge $challenge): void
+    {
+        $challenge->update([
+            'purpose' => 'invitation',
+        ]);
+
+        if ($challenge->expires_at) {
+            \Illuminate\Support\Facades\Cache::put("2fa_challenge_verified_{$challenge->id}", true, $challenge->expires_at);
+        }
+    }
+
+    /**
+     * Check if the challenge has been verified.
+     */
+    public function isVerified(AuthChallenge $challenge): bool
+    {
+        return $challenge->isVerified();
+    }
 }
 
