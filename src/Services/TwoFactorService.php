@@ -12,13 +12,13 @@ use Illuminate\Support\Facades\Hash;
 use Omaacha\TwoFactor\Channels\OtpChannelManager;
 use Omaacha\TwoFactor\Contracts\TwoFactorAuthenticatable;
 use Omaacha\TwoFactor\Contracts\TwoFactorTokenIssuer;
+use Omaacha\TwoFactor\Exceptions\TwoFactorException;
 use Omaacha\TwoFactor\Managers\AuthChallengeManager;
 use Omaacha\TwoFactor\Managers\EmailOtpManager;
 use Omaacha\TwoFactor\Managers\RecoveryCodeManager;
 use Omaacha\TwoFactor\Managers\TotpManager;
 use Omaacha\TwoFactor\Managers\TrustedDeviceManager;
 use Omaacha\TwoFactor\Models\AuthChallenge;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\Cookie;
 
 class TwoFactorService
@@ -52,11 +52,11 @@ class TwoFactorService
     public function enable(TwoFactorAuthenticatable $user, bool $enforceOwnership = false): array
     {
         if ($user->hasTwoFactorEnabled()) {
-            throw new RuntimeException(__('two-factor::messages.two_factor_already_enabled') ?? 'Two-factor authentication is already enabled.');
+            throw new TwoFactorException(__('two-factor::messages.two_factor_already_enabled') ?? 'Two-factor authentication is already enabled.');
         }
 
         if ($enforceOwnership && !$this->hasOwnershipVerification($user)) {
-            throw new RuntimeException(__('two-factor::messages.ownership_verification_required') ?? 'Please verify your identity with the email code first.');
+            throw new TwoFactorException(__('two-factor::messages.ownership_verification_required') ?? 'Please verify your identity with the email code first.');
         }
 
         $secret = $this->totpManager->generateSecretKey();
@@ -83,11 +83,11 @@ class TwoFactorService
     ): array {
         $secret = $user->getTwoFactorSecret();
         if (empty($secret)) {
-            throw new RuntimeException(__('two-factor::messages.enable_2fa_first') ?? 'Two-factor setup has not been initiated.');
+            throw new TwoFactorException(__('two-factor::messages.enable_2fa_first') ?? 'Two-factor setup has not been initiated.');
         }
 
         if (!$this->totpManager->verify($secret, $code, (string) $user->getAuthIdentifier())) {
-            throw new RuntimeException(__('two-factor::messages.invalid_totp_code') ?? 'Invalid authenticator code. Please check your authenticator app and try again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_totp_code') ?? 'Invalid authenticator code. Please check your authenticator app and try again.');
         }
 
         $plaintextCodes = $this->recoveryCodeManager->generatePlaintextCodes();
@@ -128,7 +128,7 @@ class TwoFactorService
     public function disable(TwoFactorAuthenticatable $user, string $password, string $code): bool
     {
         if (!Hash::check($password, $user->password)) {
-            throw new RuntimeException(__('two-factor::messages.invalid_password') ?? 'Invalid current password.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_password') ?? 'Invalid current password.');
         }
 
         $secret = $user->getTwoFactorSecret();
@@ -136,7 +136,7 @@ class TwoFactorService
         $validRecovery = !$validTotp && $this->recoveryCodeManager->verifyAndConsume($user, $code);
 
         if (!$validTotp && !$validRecovery) {
-            throw new RuntimeException(__('two-factor::messages.invalid_two_factor_code') ?? 'Invalid 2FA code or recovery code.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_two_factor_code') ?? 'Invalid 2FA code or recovery code.');
         }
 
         $this->transaction(function () use ($user) {
@@ -168,11 +168,11 @@ class TwoFactorService
     public function regenerateRecoveryCodes(TwoFactorAuthenticatable $user, string $password): array
     {
         if (!Hash::check($password, $user->password)) {
-            throw new RuntimeException(__('two-factor::messages.invalid_password') ?? 'Invalid current password.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_password') ?? 'Invalid current password.');
         }
 
         if (!$user->hasTwoFactorEnabled()) {
-            throw new RuntimeException(__('two-factor::messages.two_factor_not_enabled') ?? 'Two-factor authentication is not enabled.');
+            throw new TwoFactorException(__('two-factor::messages.two_factor_not_enabled') ?? 'Two-factor authentication is not enabled.');
         }
 
         $plaintextCodes = $this->recoveryCodeManager->generatePlaintextCodes();
@@ -196,14 +196,14 @@ class TwoFactorService
     ): array {
         $challenge = $this->challengeManager->resolve($challengeToken);
         if (!$challenge) {
-            throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Two-factor session has expired. Please sign in again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Two-factor session has expired. Please sign in again.');
         }
 
         $user = $challenge->user;
         $secret = $user->getTwoFactorSecret();
 
         if (empty($secret) || !$this->totpManager->verify($secret, $code, (string) $user->getAuthIdentifier())) {
-            throw new RuntimeException(__('two-factor::messages.invalid_totp_code') ?? 'Invalid authenticator code. Please check your authenticator app and try again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_totp_code') ?? 'Invalid authenticator code. Please check your authenticator app and try again.');
         }
 
         $this->challengeManager->consume($challenge);
@@ -231,7 +231,7 @@ class TwoFactorService
     {
         $challenge = $this->challengeManager->resolve($challengeToken);
         if (!$challenge) {
-            throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Two-factor session has expired. Please sign in again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Two-factor session has expired. Please sign in again.');
         }
 
         return $this->emailOtpManager->requestOtp($challenge, $email);
@@ -246,12 +246,12 @@ class TwoFactorService
     ): array {
         $challenge = $this->challengeManager->resolve($challengeToken);
         if (!$challenge) {
-            throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Two-factor session has expired. Please sign in again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Two-factor session has expired. Please sign in again.');
         }
 
         $user = $challenge->user;
         if (!$this->emailOtpManager->verifyOtp($challenge, $code)) {
-            throw new RuntimeException(__('two-factor::messages.invalid_email_otp') ?? 'Invalid verification code. Please check your email and try again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_email_otp') ?? 'Invalid verification code. Please check your email and try again.');
         }
 
         $user->setEmailOtpVerifiedAt(Carbon::now());
@@ -306,11 +306,11 @@ class TwoFactorService
     {
         $challenge = $this->challengeManager->resolve($challengeToken);
         if (!$challenge) {
-            throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Invitation session has expired. Please sign in again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Invitation session has expired. Please sign in again.');
         }
 
         if (!$this->challengeManager->isVerified($challenge)) {
-            throw new RuntimeException(__('two-factor::messages.email_verification_required') ?? 'Email verification is required before proceeding.');
+            throw new TwoFactorException(__('two-factor::messages.email_verification_required') ?? 'Email verification is required before proceeding.');
         }
 
         $user = $challenge->user;
@@ -334,18 +334,18 @@ class TwoFactorService
     ): array {
         $challenge = $this->challengeManager->resolve($challengeToken);
         if (!$challenge) {
-            throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Invitation session has expired. Please sign in again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Invitation session has expired. Please sign in again.');
         }
 
         if (!$this->challengeManager->isVerified($challenge)) {
-            throw new RuntimeException(__('two-factor::messages.email_verification_required') ?? 'Email verification is required before proceeding.');
+            throw new TwoFactorException(__('two-factor::messages.email_verification_required') ?? 'Email verification is required before proceeding.');
         }
 
         $user = $challenge->user;
         $secret = $user->getTwoFactorSecret();
 
         if (!$secret || !$this->totpManager->verify($secret, $code, (string) $user->getAuthIdentifier())) {
-            throw new RuntimeException(__('two-factor::messages.invalid_totp_code') ?? 'Invalid authenticator code. Please check your authenticator app and try again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_totp_code') ?? 'Invalid authenticator code. Please check your authenticator app and try again.');
         }
 
         $plaintextCodes = $this->recoveryCodeManager->generatePlaintextCodes();
@@ -389,7 +389,7 @@ class TwoFactorService
         $cooldownKey = "2fa_ownership_cd_{$user->getAuthIdentifier()}";
         if (Cache::has($cooldownKey)) {
             $remaining = Cache::get($cooldownKey) - time();
-            throw new RuntimeException(sprintf('Please wait %d seconds before requesting another code.', max(1, $remaining)));
+            throw new TwoFactorException(sprintf('Please wait %d seconds before requesting another code.', max(1, $remaining)));
         }
 
         $otpCode = (string) random_int(100000, 999999);
@@ -415,7 +415,7 @@ class TwoFactorService
         $storedHash = Cache::get($cacheKey);
 
         if (!$storedHash || !hash_equals($storedHash, hash('sha256', trim($code)))) {
-            throw new RuntimeException(__('two-factor::messages.invalid_email_otp') ?? 'Invalid verification code.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_email_otp') ?? 'Invalid verification code.');
         }
 
         Cache::forget($cacheKey);
@@ -438,12 +438,12 @@ class TwoFactorService
     ): array {
         $challenge = $this->challengeManager->resolve($challengeToken);
         if (!$challenge) {
-            throw new RuntimeException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Two-factor session has expired. Please sign in again.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_or_expired_challenge') ?? 'Two-factor session has expired. Please sign in again.');
         }
 
         $user = $challenge->user;
         if (!$this->recoveryCodeManager->verifyAndConsume($user, $recoveryCode)) {
-            throw new RuntimeException(__('two-factor::messages.invalid_recovery_code') ?? 'Invalid or already used recovery code.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_recovery_code') ?? 'Invalid or already used recovery code.');
         }
 
         $this->challengeManager->consume($challenge);
@@ -474,7 +474,7 @@ class TwoFactorService
         $validRecovery = !$validTotp && $this->recoveryCodeManager->verifyAndConsume($user, $code);
 
         if (!$validTotp && !$validRecovery) {
-            throw new RuntimeException(__('two-factor::messages.invalid_two_factor_code') ?? 'Invalid 2FA code or recovery code.');
+            throw new TwoFactorException(__('two-factor::messages.invalid_two_factor_code') ?? 'Invalid 2FA code or recovery code.');
         }
 
         $sudoTtl = (int) config('two-factor.sudo_mode_ttl', 15);

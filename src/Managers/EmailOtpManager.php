@@ -5,9 +5,9 @@ namespace Omaacha\TwoFactor\Managers;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Omaacha\TwoFactor\Channels\OtpChannelManager;
+use Omaacha\TwoFactor\Exceptions\TwoFactorException;
 use Omaacha\TwoFactor\Models\AuthChallenge;
 use Omaacha\TwoFactor\Models\EmailOtp;
-use RuntimeException;
 
 class EmailOtpManager
 {
@@ -39,12 +39,12 @@ class EmailOtpManager
         $cooldownKey = sprintf('2fa_email_otp_cd_%s', $challenge->id);
         if (Cache::has($cooldownKey)) {
             $remaining = Cache::get($cooldownKey) - time();
-            throw new RuntimeException(sprintf('Please wait %d seconds before requesting another code.', max(1, $remaining)));
+            throw new TwoFactorException(sprintf('Please wait %d seconds before requesting another code.', max(1, $remaining)));
         }
 
         $requestCount = EmailOtp::where('challenge_id', $challenge->id)->count();
         if ($requestCount >= self::MAX_REQUESTS_PER_CHALLENGE) {
-            throw new RuntimeException('Maximum email verification attempts reached for this session.');
+            throw new TwoFactorException('Maximum email verification attempts reached for this session.');
         }
 
         $user = $challenge->user;

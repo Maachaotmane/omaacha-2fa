@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Omaacha\TwoFactor\Services\TwoFactorService;
-use RuntimeException;
+use Omaacha\TwoFactor\Exceptions\TwoFactorException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -24,7 +24,7 @@ class TwoFactorEnableController extends Controller
             $result = $this->twoFactorService->enable($user, $enforceOwnership);
 
             return response()->json($result, Response::HTTP_OK);
-        } catch (RuntimeException $e) {
+        } catch (TwoFactorException $e) {
             return response()->json(['message' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (Throwable $e) {
             report($e);

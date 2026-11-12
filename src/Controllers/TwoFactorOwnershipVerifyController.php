@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Omaacha\TwoFactor\Services\TwoFactorService;
-use RuntimeException;
+use Omaacha\TwoFactor\Exceptions\TwoFactorException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -29,7 +29,7 @@ class TwoFactorOwnershipVerifyController extends Controller
             return response()->json([
                 'message' => __('two-factor::messages.email_verified_successfully') ?? 'Email ownership verified successfully.',
             ], Response::HTTP_OK);
-        } catch (RuntimeException $e) {
+        } catch (TwoFactorException $e) {
             return response()->json(['message' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (Throwable $e) {
             report($e);
